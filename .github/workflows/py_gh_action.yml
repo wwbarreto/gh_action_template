@@ -1,0 +1,35 @@
+name: py_gh_action
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+      description: 'Environment to deploy'
+      required: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses:  actions/checkout@v2
+      - name: Run coverage
+        uses: .github/actions/utils/coverage
+        with:
+          environment: ${{ github.event.inputs.environment }}
+      - name: Build docker image
+        uses: ./github/action/docker/build
+        with:
+          environment: ${{ github.event.inputs.environment }}
+  deploy:
+    if: |
+      github.event.inputs.environment == 'qa' || github.event.inputs.environment == 'prd'
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment: |
+      ${{ github.event.inputs.environment == 'qa' && 'homolog' || 'production' }}
+    steps:
+      - name: Deploy to ${{ github.event.inputs.environment}}
+        shell: bash
+        run: |
+          echo "Deploy to ${{ github.event.inputs.environment }}"
+          date '+%A %W %Y %X'
